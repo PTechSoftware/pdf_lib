@@ -1,3 +1,5 @@
+use crate::traits::pdf_represent::PdfRepresentatation;
+
 /// # Text Matrix
 /// Representa una transformación de texto en PDF
 /// Tm: a b c d e f
@@ -27,7 +29,24 @@ impl Tm {
             f: y,
         }
     }
-
+    pub fn set_x_scale(&mut self, x: i32) {
+        self.a = x;
+    }
+    pub fn set_y_scale(&mut self, y: i32) {
+        self.d = y;
+    }
+    pub fn set_x_offset(&mut self, x: i32) {
+        self.e = x;
+    }
+    pub fn set_y_offset(&mut self, y: i32) {
+        self.f = y;
+    }
+    pub fn set_inclination_x(&mut self, incl: i32) {
+        self.c = incl;
+    }
+    pub fn set_inclination_y(&mut self, incl: i32) {
+        self.b = incl;
+    }
     /// Retorna la coordenada X (traslación)
     pub fn get_x(&self) -> i32 {
         self.e
@@ -41,5 +60,11 @@ impl Tm {
     /// Retorna la matriz como string PDF
     pub fn to_pdf(&self) -> String {
         format!("{} {} {} {} {} {} Tm", self.a, self.b, self.c, self.d, self.e, self.f)
+    }
+}
+
+impl PdfRepresentatation for Tm {
+    fn get_as_string(&self) -> String {
+        self.to_pdf()
     }
 }
