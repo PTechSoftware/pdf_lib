@@ -1,5 +1,4 @@
-pub mod decoders;
-pub mod encoders;
+pub mod encoding;
 pub mod enums;
 pub mod models;
 pub mod traits;
