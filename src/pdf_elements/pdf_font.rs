@@ -1,6 +1,6 @@
 
 
-pub struct PdfFont{
+pub(crate)  struct PdfFont{
     type_font : String,
     subtype_font : String,
     name : String,

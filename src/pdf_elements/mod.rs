@@ -1,5 +1,8 @@
 pub mod pdf_page;
-mod pdf_header;
-mod pdf_font;
-mod pdf_dictionary;
-mod pdf_text;
+pub mod pdf_header;
+pub mod pdf_font;
+pub mod pdf_dictionary;
+pub mod pdf_text;
+pub mod pdf_xobject;
+pub mod pdf_catalog;
+pub mod pdf_trailer;

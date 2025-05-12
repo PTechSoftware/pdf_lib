@@ -1,4 +1,5 @@
-pub mod pdf_object;
-mod tm;
-mod pdf_size;
-mod pdf_pages;
+pub mod tm;
+pub mod pdf_size;
+pub mod pdf_pages;
+pub mod pdf_document;
+pub mod save_options;

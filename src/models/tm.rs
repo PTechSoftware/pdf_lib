@@ -64,7 +64,13 @@ impl Tm {
 }
 
 impl PdfRepresentatation for Tm {
-    fn get_as_string(&self) -> String {
-        self.to_pdf()
+    fn get_as_string(&self) -> (String, u64) {
+        let s = self.to_pdf();
+        let size = s.len() as u64;
+        (s, size)
+    }
+
+    fn get_wrapped(&self, id: u64, generation: u64) -> String {
+        self.get_as_string().0
     }
 }

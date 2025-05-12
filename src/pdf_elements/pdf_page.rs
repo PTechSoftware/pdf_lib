@@ -1,5 +1,4 @@
-
-
+use crate::traits::pdf_represent::PdfRepresentatation;
 
 pub struct PdfPage {
     /// Sets the reference to the parent object.
@@ -12,4 +11,18 @@ pub struct PdfPage {
     rotate : i32 ,// Ex. /Rotate 90
     /// Handle the sclae on differents resx
     user_unit : f32, //Ex. /UserUnit 3.14159
+}
+
+
+
+
+
+
+impl PdfRepresentatation for PdfPage {
+    fn get_as_string(&self) -> (String, u64) {
+        todo!()
+    }
+    fn get_wrapped(&self, id: u64, generation: u64) -> String {
+        format!("obj {} {} \n{} \nendobject", id, generation, self.get_as_string().0)
+    }
 }
