@@ -1,3 +1,4 @@
+use crate::models::pdf_size::PdfSize;
 use crate::pdf_elements::pdf_dictionary::PdfDictionary;
 use crate::traits::pdf_represent::PdfRepresentatation;
 #[allow(dead_code)]
@@ -26,6 +27,27 @@ impl Default for PdfPage {
 }
 
 impl PdfPage {
+    pub fn new() -> Self {
+        Self::default()
+    }
+    pub fn new_with_size(size: PdfSize) -> Self {
+        let mut page = Self::new();
+        page.set_page_size(size);
+        page
+    }
+    pub fn set_rotate(&mut self, rotate: i32) {
+        self.rotate = rotate;
+    }
+    pub fn set_user_unit(&mut self, user_unit: f32) {
+        self.user_unit = user_unit;
+    }
+    pub fn set_page_size(&mut self, size: PdfSize) {
+        let (w, h) = size.get_size();
+        self.crop_box = (0, 0, w, h);
+    }
+    pub fn set_content_area(&mut self, x: i32, y: i32, w: i32, h: i32) {
+        self.media_box = (x, y, w, h);
+    }
     pub fn set_parent(&mut self, id: i32, generation: i32) {
         self.parent = (id, generation);
     }
@@ -37,6 +59,9 @@ impl PdfPage {
     pub fn add_font(&mut self, name: &str, object_ref: &str) {
         let font_entry = format!("<< /{} {} >>", name, object_ref);
         self.resources.add_value("Font", font_entry);
+    }
+    pub fn add_resource(&mut self, key: &str, value: &str) {
+        self.resources.add_value(key, value.to_string());
     }
 }
 

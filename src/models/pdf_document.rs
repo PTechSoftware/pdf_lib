@@ -8,6 +8,7 @@ use crate::traits::pdf_represent::PdfRepresentatation;
 use bytes::Bytes;
 use std::fs::File;
 use std::io::{BufWriter, Write};
+use crate::pdf_elements::pdf_dictionary::PdfDictionary;
 
 #[derive(Debug, Default)]
 #[allow(dead_code)]
@@ -69,6 +70,8 @@ impl PDFDocument {
             text
         );
         self.body_objects.push((stream, 0));
+        let mut dict = PdfDictionary::new();
+        dict.add_value("Font", "<< /F1 3 0 R >>".to_string());
 
         let page_id = self.next_id();
         let page_ref = format!("{page_id} 0 R");
@@ -79,7 +82,7 @@ impl PDFDocument {
             rotate: 0,
             user_unit: 1.0,
             contents_ref: vec![stream_ref],
-            resources: "<< /Font << /F1 3 0 R >> >>".to_string(),
+            resources: dict,
         };
         let page_wrapped = page.get_wrapped(page_id, 0);
 
