@@ -1,16 +1,16 @@
+use crate::high_level::pdf_pagehandler::PdfPageHandle;
 use crate::models::tm::Tm;
+use crate::pdf_elements::colors::RgbColors;
 
-/// Módulo de bajo nivel para texto en PDF.
-/// Usa `BT ... ET` internamente.
-/// Usa `Td` para renglones relativos o `Tm` para transformación absoluta.
 #[allow(dead_code)]
 pub(crate) struct PdfText {
-    font_name: String,       // /F1, /F2, etc.
-    font_size: i32,          // tamaño de fuente en puntos
-    lines: Vec<String>,      // líneas de texto
-    td_position: Option<(i32, i32)>, // si se usa posicionamiento relativo
-    tm_position: Option<Tm>,        // si se usa matriz absoluta
-    line_spacing: i32,       // distancia entre líneas
+    font_name: String,
+    font_size: i32,
+    lines: Vec<String>,
+    td_position: Option<(i32, i32)>,
+    tm_position: Option<Tm>,
+    line_spacing: i32,
+    color: RgbColors,
 }
 
 impl PdfText {
@@ -22,19 +22,22 @@ impl PdfText {
             td_position: None,
             tm_position: None,
             line_spacing: 14,
+            color: RgbColors::Black,
         }
     }
 
     pub fn from_td(x: i32, y: i32) -> Self {
-        let mut t = Self::new();
-        t.td_position = Some((x, y));
-        t
+        Self {
+            td_position: Some((x, y)),
+            ..Self::new()
+        }
     }
 
     pub fn from_tm(tm: Tm) -> Self {
-        let mut t = Self::new();
-        t.tm_position = Some(tm);
-        t
+        Self {
+            tm_position: Some(tm),
+            ..Self::new()
+        }
     }
 
     pub fn add_line<S: Into<String>>(&mut self, line: S) {
@@ -50,26 +53,39 @@ impl PdfText {
         self.line_spacing = spacing;
     }
 
+    pub fn set_color(&mut self, color: RgbColors) {
+        self.color = color;
+    }
+
+    fn escape_pdf_text(s: &str) -> String {
+        s.replace('\\', r"\\").replace('(', r"\(").replace(')', r"\)")
+    }
+
     pub fn to_stream_content(&self) -> String {
         let mut s = String::new();
         s.push_str("BT\n");
+        s.push_str(&format!("{} rg\n", self.color.to_pdf_rg()));
         s.push_str(&format!("{} {} Tf\n", self.font_name, self.font_size));
 
         if let Some(tm) = self.tm_position {
-            s.push_str(&format!("{}\n", tm.to_pdf()));
+            s.push_str(&format!("{} Tm\n", tm.to_pdf()));
         } else if let Some((x, y)) = self.td_position {
             s.push_str(&format!("{} {} Td\n", x, y));
         }
 
         if let Some((first, rest)) = self.lines.split_first() {
-            s.push_str(&format!("({}) Tj\n", first));
+            s.push_str(&format!("({}) Tj\n", Self::escape_pdf_text(first)));
             for line in rest {
                 s.push_str(&format!("0 -{} Td\n", self.line_spacing));
-                s.push_str(&format!("({}) Tj\n", line));
+                s.push_str(&format!("({}) Tj\n", Self::escape_pdf_text(line)));
             }
         }
 
-        s.push_str("ET");
+        s.push_str("ET\n");
         s
+    }
+
+    pub fn push_to_page(self, page: &mut PdfPageHandle) {
+        page.add_raw(&self.to_stream_content());
     }
 }

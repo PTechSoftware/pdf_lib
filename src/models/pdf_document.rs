@@ -8,6 +8,7 @@ use crate::traits::pdf_represent::PdfRepresentatation;
 use bytes::Bytes;
 use std::fs::File;
 use std::io::{BufWriter, Write};
+use crate::high_level::pdf_pagehandler::PdfPageHandle;
 use crate::pdf_elements::pdf_dictionary::PdfDictionary;
 
 #[derive(Debug, Default)]
@@ -30,6 +31,50 @@ impl PDFDocument {
         id
     }
 
+    /// Inicia una nueva página y devuelve su handle para agregar contenido
+    pub fn begin_page(&mut self) -> PdfPageHandle {
+        let stream_id = self.next_id();
+        let page_id = self.next_id();
+
+        PdfPageHandle {
+            stream_id,
+            page_id,
+            content: String::new(),
+        }
+    }
+
+    /// Cierra una página: inserta el contenido y genera el objeto PdfPage
+    pub fn finalize_page(&mut self, page_handle: PdfPageHandle) {
+        let stream_len = page_handle.content.len();
+        let stream_obj = format!(
+            "{id} 0 obj\n<< /Length {} >>\nstream\n{}\nendstream\nendobj",
+            stream_len,
+            page_handle.content,
+            id = page_handle.stream_id
+        );
+        self.body_objects.push((stream_obj, 0));
+
+        let mut dict = PdfDictionary::new();
+        dict.add_value("Font", "<< /F1 3 0 R >>".to_string());
+
+        let page_ref = format!("{} 0 R", page_handle.page_id);
+        let stream_ref = format!("{} 0 R", page_handle.stream_id);
+
+        let page = PdfPage {
+            parent: (2, 0),
+            media_box: (0, 0, 595, 842),
+            crop_box: (0, 0, 595, 842),
+            rotate: 0,
+            user_unit: 1.0,
+            contents_ref: vec![stream_ref],
+            resources: dict,
+        };
+        let page_obj = page.get_wrapped(page_handle.page_id, 0);
+
+        self.pages.add_child(page_ref);
+        self.body_objects.push((page_obj, 0));
+    }
+    
     #[allow(dead_code)]
     pub fn new(name: &str) -> Self {
         let mut doc = Self::default();
@@ -60,6 +105,8 @@ impl PDFDocument {
 
         doc
     }
+
+
     #[allow(dead_code)]
     pub fn add_new_page_with_text(&mut self, text: &str) {
         let stream_id = self.next_id();
@@ -147,16 +194,35 @@ impl PDFDocument {
 
 #[cfg(test)]
 mod tests {
+    use crate::pdf_elements::pdf_table::PdfTable;
     use super::*;
 
     #[test]
-    fn generate_pdf_with_multiple_pages() {
+    fn generate_pdf() {
+
         let mut doc = PDFDocument::new("output.pdf");
 
-        doc.add_new_page_with_text("BT /F1 24 Tf 100 700 Td (Nacho manda) Tj ET");
-        doc.add_new_page_with_text("BT /F1 24 Tf 100 700 Td (Tralalero Tralala) Tj ET");
+        // Crear tabla 3x3
+        let mut table = PdfTable::new(50, 770,400 , 30, 3, 3);
+        table.set_column_widths(&[50.00, 30.00,20.00]);
+        table.set_cell_text(0, 0, "Nombre");
+        table.set_cell_text(0, 1, "Edad");
+        table.set_cell_text(0, 2, "Ciudad");
+        table.set_cell_text(1, 0, "Nacho");
+        table.set_cell_text(1, 1, "26");
+        table.set_cell_text(1, 2, "Montevideo");
+        table.set_cell_text(2, 0, "Ana");
+        table.set_cell_text(2, 1, "32");
+        table.set_cell_text(2, 2, "Colonia");
 
+        // Agregar una página
+        let mut page = doc.begin_page();
+        table.push_to_page(&mut page);
+        doc.finalize_page(page);
+
+        // Cerrar y guardar
         doc.close();
         doc.save_to_file().unwrap();
     }
+
 }

@@ -69,6 +69,9 @@ impl Tm {
     pub fn to_pdf(&self) -> String {
         format!("{} {} {} {} {} {} Tm", self.a, self.b, self.c, self.d, self.e, self.f)
     }
+    pub fn to_cm(&self) -> String {
+        format!("{} {} {} {} {} {}", self.a, self.b, self.c, self.d, self.e, self.f)
+    }
 }
 
 impl PdfRepresentatation for Tm {
