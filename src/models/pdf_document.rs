@@ -78,7 +78,7 @@ impl PDFDocument {
             crop_box: (0, 0, 595, 842),
             rotate: 0,
             user_unit: 1.0,
-            contents_ref: stream_ref,
+            contents_ref: vec![stream_ref],
             resources: "<< /Font << /F1 3 0 R >> >>".to_string(),
         };
         let page_wrapped = page.get_wrapped(page_id, 0);
@@ -151,7 +151,7 @@ mod tests {
         let mut doc = PDFDocument::new("output.pdf");
 
         doc.add_new_page_with_text("BT /F1 24 Tf 100 700 Td (Nacho manda) Tj ET");
-        doc.add_new_page_with_text("BT /F1 24 Tf 100 700 Td (El mas pitudo) Tj ET");
+        doc.add_new_page_with_text("BT /F1 24 Tf 100 700 Td (Tralalero Tralala) Tj ET");
 
         doc.close();
         doc.save_to_file().unwrap();
