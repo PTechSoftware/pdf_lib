@@ -1,7 +1,7 @@
 
 
 
-
+#[allow(dead_code)]
 pub fn draw_table(rows: &[Vec<&str>], start_x: i32, start_y: i32, col_width: i32, row_height: i32) -> String {
     let mut out = String::new();
     let total_width = col_width * rows[0].len() as i32;

@@ -1,5 +1,5 @@
 use crate::traits::pdf_represent::PdfRepresentatation;
-
+#[derive(Debug,Default)]
 pub(crate)  struct PdfHeader {
     major : i32,
     minor : i32,

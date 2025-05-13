@@ -1,6 +1,5 @@
-use crate::pdf_elements::pdf_page::PdfPage;
 use crate::traits::pdf_represent::PdfRepresentatation;
-
+#[derive(Debug,Default)]
 pub struct PdfPages {
     /// A count of the pages in the pdf
     count : i32,
@@ -10,13 +9,14 @@ pub struct PdfPages {
 }
 
 impl PdfPages {
+    #[allow(dead_code)]
     pub fn new() -> PdfPages {
         PdfPages{
             count : 0,
             kids : Vec::with_capacity(10)
         }
     }
-
+    #[allow(dead_code)]
     pub fn add_child(&mut self, reference : String) {
         self.count += 1;
         self.kids.push(reference);

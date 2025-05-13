@@ -21,7 +21,7 @@ Entonces si querés renglones tipo hoja A4 (altura 842 pt), tenés que empezar a
 
 */
 use crate::models::tm::Tm;
-
+#[allow(dead_code)]
 pub(crate)  struct PdfText {
     font_name: String,
     font_size: i32,

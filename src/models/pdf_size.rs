@@ -1,6 +1,6 @@
 
 
-
+#[allow(dead_code)]
 pub enum PdfSize {
     A0,
     A1,
@@ -17,6 +17,7 @@ pub enum PdfSize {
 }
 
 impl PdfSize {
+    #[allow(dead_code)]
     pub fn get_size(&self) -> (i32, i32) {
         match self {
             PdfSize::A0 => (2384, 3370),

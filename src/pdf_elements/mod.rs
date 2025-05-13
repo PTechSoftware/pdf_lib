@@ -6,3 +6,4 @@ pub mod pdf_text;
 pub mod pdf_xobject;
 pub mod pdf_catalog;
 pub mod pdf_trailer;
+mod pdf_embbeded_font;

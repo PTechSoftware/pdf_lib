@@ -1,5 +1,5 @@
 use crate::traits::pdf_represent::PdfRepresentatation;
-
+#[allow(dead_code)]
 pub struct PdfPage {
     /// Sets the reference to the parent object.
     parent : (i32, i32), // Ex. /Parent 2 0 R
@@ -12,10 +12,6 @@ pub struct PdfPage {
     /// Handle the sclae on differents resx
     user_unit : f32, //Ex. /UserUnit 3.14159
 }
-
-
-
-
 
 
 impl PdfRepresentatation for PdfPage {

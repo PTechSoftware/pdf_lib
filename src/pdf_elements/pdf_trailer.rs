@@ -1,5 +1,6 @@
 use crate::traits::pdf_represent::PdfRepresentatation;
 
+#[derive(Debug,Default)]
 pub struct PdfTrailer {
     pub root: String,
     pub size: u64,
@@ -58,6 +59,7 @@ startxref
         let len = out.len() as u64;
         (out, len)
     }
+    #[allow(dead_code,unused)]
     fn get_wrapped(&self, id: u64, generation: u64) -> String {
         self.get_as_string().0
     }

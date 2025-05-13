@@ -1,5 +1,5 @@
 
-
+#[allow(dead_code)]
 pub trait PdfRepresentatation {
     fn get_as_string(&self)->(String,u64);
 

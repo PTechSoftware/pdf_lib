@@ -9,8 +9,8 @@ pub struct PdfDictionary {
 impl PdfRepresentatation for PdfDictionary {
     fn get_as_string(&self) -> (String, u64) {
         let mut str = String::with_capacity(self.map.len()*30);
-        for el in &self.map {
-            str.push_str(concat!("/{} /{} \n", ));
+        for (key, value) in &self.map {
+            str.push_str(format!("/{} /{} \n",key, value ).as_str());
         }
         let s = format!(
             "<<{}>>", str);

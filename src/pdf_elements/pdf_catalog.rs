@@ -1,23 +1,28 @@
-use crate::models::pdf_pages::PdfPages;
 use crate::traits::pdf_represent::PdfRepresentatation;
 
+#[derive(Debug,Default)]
 pub struct PdfCatalog {
-    ref_pages : PdfPages
+    ref_pages : String
 }
 
 impl PdfCatalog {
-    pub(crate) fn new(pages : PdfPages) -> Self {
+    #[allow(dead_code)]
+    pub(crate) fn new(pages_ref : String) -> Self {
         Self{
-            ref_pages:pages
+            ref_pages:pages_ref
         }
+    }
+    #[allow(dead_code)]
+    pub(crate) fn set_ref(&mut self, reference : String) {
+        self.ref_pages = reference; 
     }
 }
 impl PdfRepresentatation for PdfCatalog {
     fn get_as_string(&self) -> (String, u64) {
-        let str = self.ref_pages.get_as_string();
+        let r = self.ref_pages.clone();
         let out = format!(
-            "<< /Type /Catalog\n /Pages {} >>"
-            str.0
+            "<< /Type /Catalog\n /Pages {} >>",
+            r
         );
         let size = out.len() as u64;
         (out, size)
