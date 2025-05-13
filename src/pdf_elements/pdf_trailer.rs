@@ -9,6 +9,7 @@ pub struct PdfTrailer {
 }
 
 impl PdfTrailer {
+    #[allow(dead_code)]
     pub fn new(root: impl Into<String>) -> Self {
         Self {
             root: root.into(),
@@ -18,6 +19,7 @@ impl PdfTrailer {
         }
     }
 
+    #[allow(dead_code)]
     pub fn set_xref_offset(&mut self, offset: u64) {
         self.xref_offset = offset;
     }
@@ -30,17 +32,7 @@ impl PdfTrailer {
 impl PdfRepresentatation for PdfTrailer {
     fn get_as_string(&self) -> (String, u64) {
         // XREF HEADER
-        let mut out = String::from("xref\n0 ");
-        out += &format!("{}\n", self.size);
-
-        // Entrada 0 es especial: objeto "free"
-        out += "0000000000 65535 f \n";
-
-        // El resto son normales
-        for offset in &self.offsets[1..] {
-            out += &format!("{:010} 00000 n \n", offset);
-        }
-
+        let mut out = String::from("");
         // TRAILER
         out += &format!(
             "trailer

@@ -1,26 +1,25 @@
-use std::fs::File;
-use std::io::{BufWriter, Write};
-use bytes::Bytes;
 use crate::models::pdf_pages::PdfPages;
 use crate::pdf_elements::pdf_catalog::PdfCatalog;
 use crate::pdf_elements::pdf_font::PdfFont;
 use crate::pdf_elements::pdf_header::PdfHeader;
+use crate::pdf_elements::pdf_page::PdfPage;
 use crate::pdf_elements::pdf_trailer::PdfTrailer;
 use crate::traits::pdf_represent::PdfRepresentatation;
+use bytes::Bytes;
+use std::fs::File;
+use std::io::{BufWriter, Write};
 
-#[derive(Debug,Default)]
+#[derive(Debug, Default)]
 #[allow(dead_code)]
 pub struct PDFDocument {
-    file_name : String,
-    obj_counter : u64,
-    pdf_header : PdfHeader,
-    pdf_catalog : PdfCatalog,
-    pages : PdfPages,
-    pdf_trailer : PdfTrailer,
-    body_objects: Vec<(String, u64)>
+    file_name: String,
+    obj_counter: u64,
+    pdf_header: PdfHeader,
+    pdf_catalog: PdfCatalog,
+    pages: PdfPages,
+    pdf_trailer: PdfTrailer,
+    body_objects: Vec<(String, u64)>, // (objeto serializado, offset)
 }
-
-#[allow(dead_code)]
 
 impl PDFDocument {
     #[allow(dead_code)]
@@ -29,70 +28,78 @@ impl PDFDocument {
         self.obj_counter += 1;
         id
     }
+
     #[allow(dead_code)]
     pub fn new(name: &str) -> Self {
         let mut doc = Self::default();
         doc.file_name = name.to_string();
-        doc.obj_counter = 1;
+        doc.obj_counter = 4; // Reservamos hasta 3: Catalog, Pages, Font
 
-        // HEADER
-        doc.pdf_header = PdfHeader::new(1, 4);
+        doc.pdf_header = PdfHeader::new(1, 5);
 
-        // FONT
+        // === 1. Catalog (1 0 obj)
+        doc.pdf_catalog = PdfCatalog::new("2 0 R".to_string());
+        let catalog_wrapped = doc.pdf_catalog.get_wrapped(1, 0);
+
+        // === 2. Pages (2 0 obj)
+        doc.pages = PdfPages::new();
+        let pages_wrapped = doc.pages.get_wrapped(2, 0);
+
+        // === 3. Font (/F1, 3 0 obj)
         let font = PdfFont::helvetica("F1");
-        let font_id = doc.next_id();
-        let font_ref = format!("{} 0 R", font_id);
-        let font_wrapped = font.get_wrapped(font_id, 0);
-        doc.body_objects.push((font_wrapped, 0));
+        let font_wrapped = font.get_wrapped(3, 0);
 
-        // SIMPLE CONTENT STREAM (Hello PDF)
-        let content = "BT /F1 24 Tf 100 700 Td (Hello PDF) Tj ET".to_string();
-        let stream_id = doc.next_id();
-        let stream_ref = format!("{} 0 R", stream_id);
-        let stream = format!(
-            "{} 0 obj\n<< /Length {} >>\nstream\n{}\nendstream\nendobj",
-            stream_id,
-            content.len(),
-            content
-        );
-        doc.body_objects.push((stream, 0));
+        // === Push en orden: Catalog, Pages, Font
+        doc.body_objects.push((catalog_wrapped, 0)); // 1 0 obj
+        doc.body_objects.push((pages_wrapped, 0)); // 2 0 obj
+        doc.body_objects.push((font_wrapped, 0)); // 3 0 obj
 
-        // PAGE
-        let page_id = doc.next_id();
-        let page_ref = format!("{} 0 R", page_id);
-        let resources = format!("<< /Font << /F1 {} >> >>", font_ref);
-        let page = format!(
-            "{} 0 obj\n<< /Type /Page /Parent {} /MediaBox [0 0 595 842] /Contents {} /Resources {} >>\nendobj",
-            page_id, "2 0 R", stream_ref, resources
-        );
-        doc.body_objects.push((page, 0));
-
-        // PAGES
-        let pages_id = doc.next_id(); // debe ser 2
-        let pages = format!(
-            "{} 0 obj\n<< /Type /Pages /Kids [{}] /Count 1 >>\nendobj",
-            pages_id, page_ref
-        );
-        doc.body_objects.push((pages, 0));
-
-        // CATALOG
-        let catalog_id = doc.next_id(); // debe ser 1
-        let catalog = format!(
-            "{} 0 obj\n<< /Type /Catalog /Pages {} >>\nendobj",
-            catalog_id, "2 0 R"
-        );
-        doc.body_objects.push((catalog, 0));
-
-        // TRAILER (lo completamos en close)
+        // === Trailer
         doc.pdf_trailer = PdfTrailer::new("1 0 R");
 
         doc
     }
+    #[allow(dead_code)]
+    pub fn add_new_page_with_text(&mut self, text: &str) {
+        let stream_id = self.next_id();
+        let stream_ref = format!("{stream_id} 0 R");
+        let stream = format!(
+            "{stream_id} 0 obj\n<< /Length {} >>\nstream\n{}\nendstream\nendobj",
+            text.len(),
+            text
+        );
+        self.body_objects.push((stream, 0));
+
+        let page_id = self.next_id();
+        let page_ref = format!("{page_id} 0 R");
+        let page = PdfPage {
+            parent: (2, 0),
+            media_box: (0, 0, 595, 842),
+            crop_box: (0, 0, 595, 842),
+            rotate: 0,
+            user_unit: 1.0,
+            contents_ref: stream_ref,
+            resources: "<< /Font << /F1 3 0 R >> >>".to_string(),
+        };
+        let page_wrapped = page.get_wrapped(page_id, 0);
+
+        self.pages.add_child(page_ref);
+        self.body_objects.push((page_wrapped, 0));
+    }
 
     #[allow(dead_code)]
     pub fn close(&mut self) {
+        // Regenerar objeto Pages actualizado (si se agregaron páginas nuevas)
+        let pages_wrapped = self.pages.get_wrapped(2, 0);
+        if let Some(pages_obj) = self.body_objects.get_mut(1) {
+            pages_obj.0 = pages_wrapped;
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn as_bytes(&mut self) -> Bytes {
         let mut output = String::new();
-        let mut offsets = vec![0u64]; // entrada 0 obligatoria
+        let mut offsets = vec![0u64];
 
         // HEADER
         output += &self.pdf_header.get_as_string().0;
@@ -100,7 +107,8 @@ impl PDFDocument {
         let mut pos = output.len() as u64;
 
         // OBJETOS
-        for (_, (obj_str, _)) in self.body_objects.iter_mut().enumerate() {
+        for (obj_str, offset) in self.body_objects.iter_mut() {
+            *offset = pos;
             offsets.push(pos);
             output += obj_str;
             output += "\n";
@@ -110,7 +118,7 @@ impl PDFDocument {
         // XREF
         let xref_start = pos;
         output += &format!("xref\n0 {}\n", offsets.len());
-        output += "0000000000 65535 f \n"; // entrada 0
+        output += "0000000000 65535 f \n";
         for offset in offsets.iter().skip(1) {
             output += &format!("{:010} 00000 n \n", offset);
         }
@@ -121,33 +129,6 @@ impl PDFDocument {
         let (trailer_str, _) = self.pdf_trailer.get_as_string();
         output += &trailer_str;
 
-    }
-    #[allow(dead_code)]
-    pub fn as_bytes(&mut self) -> Bytes {
-        let mut output = String::new();
-        let mut offsets = vec![0u64];
-        output += &self.pdf_header.get_as_string().0;
-        output += "\n";
-        let mut pos = output.len() as u64;
-
-        for (obj_str, _) in self.body_objects.iter_mut() {
-            offsets.push(pos);
-            output += obj_str;
-            output += "\n";
-            pos = output.len() as u64;
-        }
-
-        let xref_start = pos;
-        output += &format!("xref\n0 {}\n", offsets.len());
-        output += "0000000000 65535 f \n";
-        for offset in offsets.iter().skip(1) {
-            output += &format!("{:010} 00000 n \n", offset);
-        }
-
-        self.pdf_trailer.set_offsets(offsets);
-        self.pdf_trailer.set_xref_offset(xref_start);
-        let (trailer_str, _) = self.pdf_trailer.get_as_string();
-        output += &trailer_str;
         Bytes::from(output)
     }
 
@@ -166,11 +147,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn generate_hello_pdf() {
-        let mut doc = PDFDocument::new("test_hello.pdf");
-        doc.close(); // genera to_do internamente
-        doc.save_to_file().expect("No se pudo guardar el PDF");
-        assert!(std::path::Path::new("test_hello.pdf").exists());
+    fn generate_pdf_with_multiple_pages() {
+        let mut doc = PDFDocument::new("output.pdf");
+
+        doc.add_new_page_with_text("BT /F1 24 Tf 100 700 Td (Nacho manda) Tj ET");
+        doc.add_new_page_with_text("BT /F1 24 Tf 100 700 Td (El mas pitudo) Tj ET");
+
+        doc.close();
+        doc.save_to_file().unwrap();
     }
 }
-

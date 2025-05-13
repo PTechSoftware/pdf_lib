@@ -58,12 +58,9 @@ impl PdfRepresentatation for PdfFont {
         (s.clone(), s.len() as u64)
     }
 
+    
     fn get_wrapped(&self, id: u64, generation: u64) -> String {
-        format!(
-            "{} {} obj\n{}\nendobj",
-            id,
-            generation,
-            self.get_as_string().0
-        )
+        let (body, _) = self.get_as_string();
+        format!("{id} {generation} obj\n{body}\nendobj")
     }
 }
