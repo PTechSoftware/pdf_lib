@@ -77,9 +77,13 @@ impl HighLevelPdf {
             let image_obj = image.to_object(image_id).0;
             self.doc.body_objects.push((image_obj, 0));
             self.doc.register_xobject(name, image_id);
+            
+            
+            page.push_xobject(name); 
             image.push_to_page(page);
         }
     }
+
 
     pub fn add_image_png(&mut self, name: &str, x: i32, y: i32, width: u32, height: u32, data: Vec<u8>) {
         if let Some(page) = &mut self.current_page {
@@ -89,6 +93,7 @@ impl HighLevelPdf {
             let image_obj = image.to_object(image_id).0;
             self.doc.body_objects.push((image_obj, 0));
             self.doc.register_xobject(name, image_id);
+            page.push_xobject(name);
             image.push_to_page(page);
         }
     }
@@ -134,13 +139,15 @@ mod tests {
         ];
         pdf.add_table(50, 650, &columnas, filas);
 
-        // Agregar imagen JPEG desde archivo
+
+        // Agregar imagen JPEG desde archivo [este es el problema]
         let mut file = File::open("logo.jpeg")
             .expect("La imagen test_assets/test.jpg no existe");
         let mut image_data = Vec::new();
         file.read_to_end(&mut image_data).unwrap();
         pdf.add_image_jpeg("ImTest", 50, 450, 100, 100, image_data);
-
+        
+        
         // Finalizar y guardar
         pdf.finalize_page();
         pdf.save();

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use bytes::Bytes;
@@ -33,7 +33,9 @@ impl PDFDocument {
     }
 
     pub fn register_xobject(&mut self, name: &str, id: u64) {
-        self.xobject_ids.insert(name.to_string(), id);
+        if self.xobject_ids.contains_key(name) == false {
+            self.xobject_ids.insert(name.to_string(), id);
+        }
     }
 
     pub fn begin_page(&mut self) -> PdfPageHandle {
@@ -44,7 +46,7 @@ impl PDFDocument {
             stream_id,
             page_id,
             content: String::new(),
-            xobjects: Vec::new(),
+            xobjects: HashSet::new(),
         }
     }
 
@@ -204,13 +206,13 @@ mod tests {
 
         let mut text = PdfText::from_td(50, text_y);
         text.set_font("/F1", 12);
-        text.set_color(RgbColors::DarkGray);
+        text.set_color(RgbColors::Red);
         text.set_line_spacing(16);
         text.add_line("Este documento fue generado automáticamente.");
         text.add_line("Todos los datos son confidenciales.");
 
         let mut page = doc.begin_page();
-        page.xobjects.push("Im1".to_string());
+        page.push_xobject("Im1");
         image.push_to_page(&mut page);
         table.push_to_page(&mut page);
         text.push_to_page(&mut page);

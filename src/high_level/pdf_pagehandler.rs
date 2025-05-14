@@ -1,15 +1,22 @@
+use std::collections::HashSet;
+
 #[derive(Debug)]
 pub struct PdfPageHandle {
     pub stream_id: u64,
     pub page_id: u64,
     pub content: String,
-    pub xobjects: Vec<String>,
+    pub xobjects: HashSet<String>,
 }
 
 impl PdfPageHandle {
 
+    pub fn push_xobject(&mut self, item: &str){
+        if self.xobjects.contains(&item.to_string()) == false {
+            self.xobjects.insert(item.to_string());
+        }
+    }
     pub fn add_image(&mut self, name: &str) {
-        self.xobjects.push(name.to_string());
+        self.xobjects.insert(name.to_string());
     }
 
     pub fn xobjects_entry(&self) -> Option<String> {
