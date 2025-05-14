@@ -3,9 +3,27 @@ pub struct PdfPageHandle {
     pub stream_id: u64,
     pub page_id: u64,
     pub content: String,
+    pub xobjects: Vec<String>,
 }
 
 impl PdfPageHandle {
+
+    pub fn add_image(&mut self, name: &str) {
+        self.xobjects.push(name.to_string());
+    }
+
+    pub fn xobjects_entry(&self) -> Option<String> {
+        if self.xobjects.is_empty() {
+            None
+        } else {
+            let mut entry = String::new();
+            for name in &self.xobjects {
+                entry.push_str(&format!("/{name} {name} "));
+            }
+            Some(entry.trim_end().to_string())
+        }
+    }
+
     /// Agrega una línea de texto con fuente, tamaño y coordenadas absolutas
     pub fn add_text(&mut self, font: &str, size: i32, x: i32, y: i32, text: &str) {
         use std::fmt::Write;
