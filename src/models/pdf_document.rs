@@ -194,17 +194,30 @@ impl PDFDocument {
 
 #[cfg(test)]
 mod tests {
+    use crate::models::tm::Tm;
+    use crate::pdf_elements::colors::RgbColors;
+    use crate::pdf_elements::pdf_image::PdfImage;
     use crate::pdf_elements::pdf_table::PdfTable;
+    use crate::pdf_elements::pdf_text::PdfText;
     use super::*;
 
-    #[test]
-    fn generate_pdf() {
 
+    #[test]
+    fn generate_pdf_with_image_table_text() {
         let mut doc = PDFDocument::new("output.pdf");
 
-        // Crear tabla 3x3
-        let mut table = PdfTable::new(50, 770,400 , 30, 3, 3);
-        table.set_column_widths(&[50.00, 30.00,20.00]);
+        // === 1. Imagen arriba
+        let image_bytes = std::fs::read("logo.jpeg").expect("No se pudo leer la imagen");
+        let tm = Tm { a: 100, b: 0, c: 0, d: 50, e: 50, f: 790 }; // pos (50,790), alto 50
+        let image = PdfImage::new_jpeg("Im1", 400, 200, image_bytes, tm);
+
+        let image_obj = image.to_object(doc.next_id());
+        doc.body_objects.push((image_obj, 0));
+
+        // === 2. Tabla debajo de la imagen (usamos altura fija)
+        let cell_height = 30;
+        let mut table = PdfTable::new(50, 730, 400, cell_height, 3, 3);
+        table.set_column_widths(&[50.0, 30.0, 20.0]);
         table.set_cell_text(0, 0, "Nombre");
         table.set_cell_text(0, 1, "Edad");
         table.set_cell_text(0, 2, "Ciudad");
@@ -215,12 +228,25 @@ mod tests {
         table.set_cell_text(2, 1, "32");
         table.set_cell_text(2, 2, "Colonia");
 
-        // Agregar una página
+        let table_height = cell_height * table.rows as i32;
+        let text_y = 730 - table_height - 40; // 40pt espacio entre tabla y texto
+
+        // === 3. Texto al final
+        let mut text = PdfText::from_td(50, text_y);
+        text.set_font("/F1", 12);
+        text.set_color(RgbColors::DarkGray);
+        text.set_line_spacing(16);
+        text.add_line("Este documento fue generado automáticamente.");
+        text.add_line("Todos los datos son confidenciales.");
+
+        // === 4. Agregar todo a una página
         let mut page = doc.begin_page();
+        image.push_to_page(&mut page);
         table.push_to_page(&mut page);
+        text.push_to_page(&mut page);
         doc.finalize_page(page);
 
-        // Cerrar y guardar
+        // === 5. Guardar PDF
         doc.close();
         doc.save_to_file().unwrap();
     }
