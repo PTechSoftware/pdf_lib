@@ -11,7 +11,6 @@ use crate::pdf_elements::pdf_header::PdfHeader;
 use crate::pdf_elements::pdf_page::PdfPage;
 use crate::pdf_elements::pdf_trailer::PdfTrailer;
 use crate::traits::pdf_represent::PdfRepresentatation;
-
 #[derive(Debug, Default)]
 #[allow(dead_code)]
 pub struct PDFDocument {
@@ -21,7 +20,7 @@ pub struct PDFDocument {
     pdf_catalog: PdfCatalog,
     pages: PdfPages,
     pdf_trailer: PdfTrailer,
-    body_objects: Vec<(String, u64)>, // (objeto serializado, offset)
+    body_objects: Vec<(Vec<u8>, u64)>,
     xobject_ids: HashMap<String, u64>,
 }
 
@@ -57,7 +56,7 @@ impl PDFDocument {
             page_handle.content,
             id = page_handle.stream_id
         );
-        self.body_objects.push((stream_obj, 0));
+        self.body_objects.push((stream_obj.into_bytes(), 0));
 
         let mut dict = PdfDictionary::new();
         dict.add_value("Font", "<< /F1 3 0 R >>".to_string());
@@ -85,8 +84,8 @@ impl PDFDocument {
             contents_ref: vec![stream_ref],
             resources: dict,
         };
-        let page_obj = page.get_wrapped(page_handle.page_id, 0);
 
+        let page_obj = page.get_wrapped_bytes(page_handle.page_id, 0);
         self.pages.add_child(page_ref);
         self.body_objects.push((page_obj, 0));
     }
@@ -103,10 +102,10 @@ impl PDFDocument {
             xobject_ids: HashMap::new(),
         };
 
-        let catalog_wrapped = doc.pdf_catalog.get_wrapped(1, 0);
-        let pages_wrapped = doc.pages.get_wrapped(2, 0);
+        let catalog_wrapped = doc.pdf_catalog.get_wrapped_bytes(1, 0);
+        let pages_wrapped = doc.pages.get_wrapped_bytes(2, 0);
         let font = PdfFont::helvetica("F1");
-        let font_wrapped = font.get_wrapped(3, 0);
+        let font_wrapped = font.get_wrapped_bytes(3, 0);
 
         doc.body_objects.push((catalog_wrapped, 0));
         doc.body_objects.push((pages_wrapped, 0));
@@ -116,39 +115,42 @@ impl PDFDocument {
     }
 
     pub fn close(&mut self) {
-        let pages_wrapped = self.pages.get_wrapped(2, 0);
+        let pages_wrapped = self.pages.get_wrapped_bytes(2, 0);
         if let Some(pages_obj) = self.body_objects.get_mut(1) {
             pages_obj.0 = pages_wrapped;
         }
     }
 
     pub fn as_bytes(&mut self) -> Bytes {
-        let mut output = String::new();
+        let mut output = Vec::new();
         let mut offsets = vec![0u64];
 
-        output += &self.pdf_header.get_as_string().0;
-        output += "\n";
+        let (header_str, _) = self.pdf_header.get_as_string();
+        output.extend_from_slice(header_str.as_bytes());
+        output.push(b'\n');
+
         let mut pos = output.len() as u64;
 
-        for (obj_str, offset) in self.body_objects.iter_mut() {
+        for (obj_data, offset) in self.body_objects.iter_mut() {
             *offset = pos;
             offsets.push(pos);
-            output += obj_str;
-            output += "\n";
+            output.extend_from_slice(obj_data);
+            output.push(b'\n');
             pos = output.len() as u64;
         }
 
         let xref_start = pos;
-        output += &format!("xref\n0 {}\n", offsets.len());
-        output += "0000000000 65535 f \n";
+        let mut xref = format!("xref\n0 {}\n", offsets.len());
+        xref += "0000000000 65535 f \n";
         for offset in offsets.iter().skip(1) {
-            output += &format!("{:010} 00000 n \n", offset);
+            xref += &format!("{:010} 00000 n \n", offset);
         }
+        output.extend_from_slice(xref.as_bytes());
 
         self.pdf_trailer.set_offsets(offsets);
         self.pdf_trailer.set_xref_offset(xref_start);
         let (trailer_str, _) = self.pdf_trailer.get_as_string();
-        output += &trailer_str;
+        output.extend_from_slice(trailer_str.as_bytes());
 
         Bytes::from(output)
     }

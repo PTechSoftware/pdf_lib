@@ -1,3 +1,6 @@
+use flate2::write::ZlibEncoder;
+use flate2::Compression;
+use std::io::Write;
 use crate::high_level::pdf_pagehandler::PdfPageHandle;
 use crate::models::tm::Tm;
 
@@ -34,20 +37,37 @@ impl PdfImage {
             height,
             data,
             tm,
-            filter: "DCTDecode".to_string(),
+            filter: "FlateDecode".to_string(),
             color_space: "DeviceRGB".to_string(),
             bits_per_component: 8,
         }
     }
+    pub fn to_object(&self, id: u64) -> (Vec<u8>, u64) {
+        let mut stream_data: Vec<u8> = match self.filter.as_str() {
+            "DCTDecode" => {
+                // JPEG ya está comprimido, no se transforma, se usa tal cual
+                self.data.clone()
+            }
+            "ASCIIHexDecode" => {
+                let mut hex = self
+                    .data
+                    .iter()
+                    .map(|b| format!("{:02X}", b))
+                    .collect::<String>()
+                    .into_bytes();
+                hex.push(b'>');
+                hex
+            }
+            "FlateDecode" => {
+                let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
+                encoder.write_all(&self.data).expect("Compression failed");
+                encoder.finish().expect("Compression finalize failed")
+            }
+            _ => self.data.clone(), // Para DCTDecode u otros binarios
+        };
 
-    pub fn to_object(&self, id: u64) -> (String, u64) {
-        let hex_data = self
-            .data
-            .iter()
-            .map(|b| format!("{:02X}", b))
-            .collect::<String>();
+        let length = stream_data.len();
 
-        let mut out = Vec::new();
         let header = format!(
             "{id} 0 obj\n<< \
 /Type /XObject\n\
@@ -57,24 +77,25 @@ impl PdfImage {
 /Height {}\n\
 /ColorSpace /{}\n\
 /BitsPerComponent {}\n\
-/Filter /ASCIIHexDecode\n\
+/Filter /{}\n\
 /Length {} >>\nstream\n",
             self.name,
             self.width,
             self.height,
             self.color_space,
             self.bits_per_component,
-            hex_data.len() + 1 // por el ~> final
+            self.filter,
+            self.data.len()
         );
 
+
+        let mut out = Vec::new();
         out.extend_from_slice(header.as_bytes());
-        out.extend_from_slice(hex_data.as_bytes());
-        out.extend_from_slice(b">\nendstream\nendobj");
+        out.extend_from_slice(&stream_data);
+        out.extend_from_slice(b"\nendstream\nendobj\n");
 
-        let salida = String::from_utf8(out).expect("Hex data should always be valid UTF-8");
-        (salida, 0)
+        (out, 0)
     }
-
 
     pub fn draw(&self) -> String {
         format!("q\n{} cm\n/{} Do\nQ", self.tm.to_cm(), self.name)
