@@ -20,13 +20,13 @@ pub struct PDFDocument {
     pdf_catalog: PdfCatalog,
     pages: PdfPages,
     pdf_trailer: PdfTrailer,
-    body_objects: Vec<(Vec<u8>, u64)>,
+    pub(crate) body_objects: Vec<(Vec<u8>, u64)>,
     xobject_ids: HashMap<String, u64>,
 }
 
 impl PDFDocument {
     #[allow(dead_code)]
-    fn next_id(&mut self) -> u64 {
+    pub(crate) fn next_id(&mut self) -> u64 {
         let id = self.obj_counter;
         self.obj_counter += 1;
         id
