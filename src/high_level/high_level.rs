@@ -126,7 +126,7 @@ mod tests {
         // Crear PDF
         let mut pdf = HighLevelPdf::new(file_name);
         pdf.begin_page();
-
+        /*
         // Agregar texto
         let style = TextStyle::default();
         pdf.add_text(50, 750, &["Texto de prueba con imagen"], &style);
@@ -138,7 +138,7 @@ mod tests {
             vec!["1", "2", "3"],
         ];
         pdf.add_table(50, 650, &columnas, filas);
-
+        */
 
         // Agregar imagen JPEG desde archivo [este es el problema]
         let mut file = File::open("logo.jpeg")

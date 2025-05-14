@@ -64,7 +64,7 @@ impl PdfText {
     pub fn to_stream_content(&self) -> String {
         let mut s = String::new();
         s.push_str("BT\n");
-        s.push_str(&format!("{} rg\n", self.color.to_pdf_rg()));
+        s.push_str(&format!("{}\n", self.color.to_pdf_rg()));
         s.push_str(&format!("{} {} Tf\n", self.font_name, self.font_size));
 
         if let Some(tm) = self.tm_position {

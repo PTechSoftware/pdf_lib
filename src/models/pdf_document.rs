@@ -187,7 +187,7 @@ mod tests {
         let image_obj = image.to_object(image_id).0;
         doc.body_objects.push((image_obj, 0));
         doc.register_xobject("Im1", image_id);
-
+        
         let cell_height = 30;
         let mut table = PdfTable::new(50, 730, 400, cell_height, 3, 3);
         table.set_column_widths(&[50.0, 30.0, 20.0]);
@@ -206,7 +206,7 @@ mod tests {
 
         let mut text = PdfText::from_td(50, text_y);
         text.set_font("/F1", 12);
-        text.set_color(RgbColors::Red);
+        text.set_color(RgbColors::Black);
         text.set_line_spacing(16);
         text.add_line("Este documento fue generado automáticamente.");
         text.add_line("Todos los datos son confidenciales.");
